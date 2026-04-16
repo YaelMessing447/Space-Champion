@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space  - Home</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #050509;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* רקע כוכבים נוצצים */
+        #stars-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        .main-container {
+            text-align: center;
+            z-index: 10;
+        }
+
+        .glitch-title {
+            font-size: 5rem;
+            font-weight: bold;
+            color: #00d2ff;
+            text-shadow: 0 0 20px #00d2ff, 0 0 40px #0072ff;
+            letter-spacing: 15px;
+            margin-bottom: 50px;
+            animation: glow 3s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 20px #00d2ff, 0 0 40px #0072ff;
+            }
+
+            to {
+                text-shadow: 0 0 30px #ff00ff, 0 0 60px #ff00ff;
+            }
+        }
+
+        .menu-buttons {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #00d2ff;
+            padding: 15px 40px;
+            color: white;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        button:hover {
+            background: #00d2ff;
+            color: #050509;
+            box-shadow: 0 0 30px #00d2ff;
+            transform: scale(1.1);
+        }
+
+        .start-btn {
+            border-color: #ff00ff;
+            color: #ff00ff;
+        }
+
+        .start-btn:hover {
+            background: #ff00ff;
+            box-shadow: 0 0 30px #ff00ff;
+            color: white;
+        }
+
+        /* פופ-אפ השם */
+        #nameModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 15, 30, 0.95);
+            padding: 40px;
+            border-radius: 30px;
+            border: 2px solid #00d2ff;
+            box-shadow: 0 0 50px rgba(0, 210, 255, 0.3);
+            text-align: center;
+            z-index: 100;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00d2ff;
+            padding: 10px 20px;
+            color: white;
+            font-size: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            width: 250px;
+            text-align: center;
+        }
+
+        .overlay-bg {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 90;
+        }
+
+        .modal-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 15, 30, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 2px solid #00d2ff;
+            z-index: 1000;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="stars-canvas"></canvas>
+
+    <div class="main-container">
+        <div class="glitch-title">אלוף החלל</div>
+        <div style="font-size: 1.5rem; margin-bottom: 30px; opacity: 0.8; padding: 4%; margin: 5%;">צא למסע בין כוכבים, אסוף יהלומים, הזהר ממוקשים וכבוש את החלל!</div>
+        <div class="menu-buttons">
+            <button class="start-btn" onclick="openModal()">🚀 התחל משחק</button>
+        </div>
+        <p style="margin-top: 40px; opacity: 0.5;">YaelMessing@</p>
+    </div>
+
+    <div class="overlay-bg" id="overlay"></div>
+    <div id="nameModal">
+        <h2>איך קוראים לך, טייס/ת?</h2>
+        <input type="text" id="playerNameInput" placeholder="הכנס שם..." maxlength="12">
+        <br>
+        <button onclick="startGame()">צא לדרך!</button>
+    </div>
+
+
+    <div id="instructionsModal" class="modal-content" style="display:none;">
+        <h2 style="color: #00d2ff; margin-top: 0;">📜 הוראות המשחק</h2>
+        <div style="text-align: right; line-height: 1.6; color: white; margin: 20px 0;">
+            <p>🚀 <b>תנועה:</b> החללית עוקבת אחרי העכבר.</p>
+            <p>💎 <b>יהלומים:</b> צהוב (100 נק'), כחול (300 נק').</p>
+            <p>☄️ <b>זהירות:</b> אל תיגע במוקשים האדומים!</p>
+            <p>🏆 <b>מטרה:</b> צבור מספיק נקודות כדי לעלות שלב.</p>
+        </div>
+        <button onclick="closeInstructions()" style="padding: 10px 30px; font-size: 18px;">הבנתי!</button>
+    </div>
+
+    <div id="modalOverlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:999;"
+        onclick="closeInstructions()"></div>
+
+
+    <script>
+        // אנימציית כוכבים לרקע
+        const canvas = document.getElementById('stars-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let stars = Array.from({ length: 100 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2,
+            speed: Math.random() * 0.5
+        }));
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(s => {
+                s.y += s.speed;
+                if (s.y > canvas.height) s.y = 0;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        function openModal() {
+            document.getElementById('nameModal').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('playerNameInput').focus();
+        }
+
+        function startGame() {
+            const name = document.getElementById('playerNameInput').value || "אורח";
+            // שמירת השם בזיכרון הדפדפן כדי שהדף השני יוכל לקרוא אותו
+            localStorage.setItem('currentPlayerName', name);
+            // מעבר לדף המשחק
+            window.location.href = "space.html";
+        }
+
+
+        
+        function openInstructions() {
+            document.getElementById('instructionsModal').style.display = 'block';
+            document.getElementById('instructionsOverlay').style.display = 'block';
+        }
+
+        function closeInstructions() {
+            document.getElementById('instructionsModal').style.display = 'none';
+            document.getElementById('instructionsOverlay').style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>

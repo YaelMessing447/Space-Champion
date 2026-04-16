@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Space -  Edition</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #050509;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+
+        #bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('image.jpg');
+            background-size: cover;
+            filter: blur(15px);
+            z-index: -1;
+            opacity: 0.5;
+            transform: scale(1.1);
+        }
+
+        /* ממשק עליון - ניקוד ושלב */
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            box-sizing: border-box;
+            z-index: 10;
+            pointer-events: none;
+
+        }
+
+        /* קבוצת הנתונים משמאל - מאוחדת ונקייה */
+        .ui-left {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            /* רקע שחור שקוף מאוד */
+            padding: 8px 20px;
+            border-radius: 30px;
+            /* קצוות עגולים מאוד */
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            backdrop-filter: blur(10px);
+            /* טשטוש עדין מאחורי הטקסט */
+            gap: 20px;
+        }
+
+        .stat-box {
+            font-size: 25px;
+            /* קצת יותר קטן ומקצועי */
+            font-weight: 600;
+            color: #00d2ff;
+            text-shadow: 0 0 8px rgba(0, 210, 255, 0.6);
+        }
+
+        /* הפרדה דקה בין הנתונים */
+        .stat-box:not(:last-child):after {
+            content: "|";
+            margin-right: 20px;
+            opacity: 0.4;
+        }
+
+        /* הלבבות בימין - בלי קופסה, רק צל */
+        #livesDisplay {
+            font-size: 35px;
+            /* במקום אדום, נשתמש בורוד בוהק שמפריד מהמוקשים */
+            filter: drop-shadow(0 0 10px #ff00ff);
+            padding: 5px;
+        }
+
+        /* מסכי הודעות (תפריט, גיים אובר, מעבר שלב) */
+        .overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 15, 30, 0.95);
+            padding: 50px;
+            border-radius: 30px;
+            border: 3px solid #00d2ff;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 0 50px rgba(0, 210, 255, 0.5);
+            display: none;
+            /* מוסתר כברירת מחדל */
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #00d2ff;
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #00d2ff, #0072ff);
+            border: none;
+            padding: 15px 40px;
+            color: white;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover {
+            transform: scale(1.1) translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 210, 255, 0.4);
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .firework {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* הגדרת האנימציה של הרעידה */
+        @keyframes shake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-1px, -2px) rotate(-1deg);
+            }
+
+            20% {
+                transform: translate(-3px, 0px) rotate(1deg);
+            }
+
+            30% {
+                transform: translate(3px, 2px) rotate(0deg);
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg);
+            }
+
+            50% {
+                transform: translate(-1px, 2px) rotate(-1deg);
+            }
+
+            60% {
+                transform: translate(-3px, 1px) rotate(0deg);
+            }
+
+            70% {
+                transform: translate(3px, 1px) rotate(-1deg);
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg);
+            }
+
+            90% {
+                transform: translate(1px, 2px) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg);
+            }
+        }
+
+        /* קלאס שמפעיל את האנימציה */
+        .shake-effect {
+            /* האנימציה תרוץ במשך 0.3 שניות */
+            animation: shake 0.3s;
+            /* האנימציה תרוץ פעם אחת */
+            animation-iteration-count: 1;
+        }
+
+        /* אפקט הפיצוץ (הרסיסים) */
+        .explosion-particle {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+            /* מעל הכל */
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <div id="bg"></div>
+
+
+    <div id="ui">
+        <div class="ui-left">
+            <div class="stat-box" id="scoreDisplay">ניקוד 0</div>
+            <div class="stat-box" id="levelDisplay">שלב 1</div>
+            <div class="stat-box" id="highScoreDisplay">שיא: 0</div>
+        </div>
+
+        <div id="livesDisplay">❤️❤️❤️</div>
+    </div>
+
+    <div id="ui">
+
+    </div>
+
+    <div id="playerNameDisplay" class="player-name-tag"
+        style="position: absolute; left: 50%; transform: translateX(-50%); top: 20px; font-size: 24px; color: white; font-weight: bold; text-shadow: 0 0 10px #00d2ff;">
+    </div>
+
+    <!-- הוראות המשחק   -->
+    <div id="startMenu" class="overlay" style="display: block;">
+        <h1>יהלומים בחלל</h1>
+        <div
+            style="text-align: right; margin-bottom: 25px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px;">
+            <h3 style="color: #f1c40f; margin-top: 0;">📜 הוראות המשחק:</h3>
+            <ul style="list-style: none; padding: 0; line-height: 1.8;">
+                <li>🚀 <b>תנועה:</b> החללית עוקבת אחרי סמן העכבר שלך.</li>
+                <li>💎 <b>המטרה:</b> אסוף יהלומים צהובים כדי לצבור נקודות ולעלות שלב.</li>
+                <li>🔷 <b>יהלומים כחולים:</b> אסוף אותם כדי לקבל פי 3 נקודות!</li>
+                <li>☄️ <b>זהירות:</b> אל תיגע במוקשים האדומים - הם יפוצצו אותך!</li>
+                <li>🏆 <b>שלבים:</b> בכל שלב המהירות עולה. תצליח להגיע לשלב האחרון?</li>
+            </ul>
+        </div>
+        <button onclick="initGame(1)">הבנתי, בוא נטוס! 🚀</button>
+    </div>
+
+
+    <!-- game over  -->
+    <div id="gameOverScreen" class="overlay">
+        <h1 style="color: #ff4757;">אופס נפסלת!</h1>
+        <p id="finalScoreText"></p>
+        <button onclick="resetToStart()">נסה שוב</button>
+    </div>
+
+    <!-- מעבר שלב  -->
+    <div id="levelUpScreen" class="overlay">
+        <h1>כל הכבוד!!</h1>
+        <p id="levelUpText"></p>
+        <button id="nextLevelBtn">לשלב הבא</button>
+    </div>
+    <h3
+        style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); margin: 0; color: white; z-index: 1000;">
+        YaelMessing@</h3>
+    <canvas id="gameCanvas"></canvas>
+
+
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const startMenu = document.getElementById('startMenu');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const levelUpScreen = document.getElementById('levelUpScreen');
+        const finalScoreText = document.getElementById('finalScoreText');
+        const levelUpText = document.getElementById('levelUpText');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+
+        // צליל איסוף יהלום
+        const collectSound = new Audio('yes.mp3');
+
+        // צליל פיצוץ (פסילה)
+        const explosionSound = new Audio('no.mp3');
+
+        function playSnd(audio) {
+            const clone = audio.cloneNode(); // יוצר עותק חדש של הצליל בכל הפעלה
+            clone.volume = 0.4;
+            clone.play().catch(e => console.log("Sound error:", e));
+        }
+
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let level = 1;
+        let lives = 3;
+        let gameActive = false;
+        let player = { x: canvas.width / 2, y: canvas.height / 2, r: 20 };
+        let items = [];
+        let spawnTimer;
+
+        let highScore = localStorage.getItem('spaceHighScore') || 0;
+        document.getElementById('highScoreDisplay').innerText = `שיא: ${highScore}`;
+
+        // הלוגיקה המקורית שלך נשמרת כאן
+        const levelsConfig = {
+            1: { target: 1000, speedBoost: 1, spawnRate: 800 },
+            2: { target: 2000, speedBoost: 1.5, spawnRate: 600 },
+            3: { target: 5000, speedBoost: 2.2, spawnRate: 400 }
+        };
+
+
+        function getLevelParams(lvl) {
+            // אם השלב קיים ב-Config המקורי, נשתמש בו
+            if (levelsConfig[lvl]) return levelsConfig[lvl];
+
+            // אם עברנו את שלב 3, ניצור לוגיקה אינסופית שמבוססת על שלב 3
+            return {
+                target: 5000 + (lvl - 3) * 2000, // כל שלב נוסף דורש עוד 2000 נקודות
+                speedBoost: 2.2 + (lvl - 3) * 0.3, // המהירות עולה ב-0.3 בכל פעם
+                spawnRate: Math.max(200, 400 - (lvl - 3) * 50) // הקצב נהיה מהיר יותר
+            };
+        }
+
+        const savedName = localStorage.getItem('currentPlayerName') || "PLAYER";
+        // יוצר מפתח ייחודי לכל שחקן בזיכרון, למשל: spaceHighScore_Yael
+        const userHighScoreKey = 'spaceHighScore_' + savedName;
+
+        highScore = localStorage.getItem(userHighScoreKey) || 0;
+
+        // פונקציה שמציגה את השם והשיא בתחילת המשחק
+        function setupUserDisplay() {
+            const savedName = localStorage.getItem('currentPlayerName') || "טייס/ת";
+            const userHighScoreKey = 'spaceHighScore_' + savedName;
+            const userHighLevelKey = userHighScoreKey + '_level';
+
+            // משיכת הנתונים מהזיכרון
+            const highScore = localStorage.getItem(userHighScoreKey) || 0;
+            const highLevel = localStorage.getItem(userHighLevelKey) || 1;
+
+            // עדכון שם השחקן במרכז
+            const nameDisplay = document.getElementById('playerNameDisplay');
+            if (nameDisplay) {
+                nameDisplay.innerText = savedName.toUpperCase();
+            }
+
+            // עדכון תצוגת השיא בפורמט החדש
+            const highScoreDisplay = document.getElementById('highScoreDisplay');
+            if (highScoreDisplay) {
+                highScoreDisplay.innerText = `השיא שלי: ${highScore} שלב: ${highLevel}`;
+            }
+        }
+
+        // קראי לזה ישר כשהדף נטען
+        setupUserDisplay();
+
+        function initGame(lvl) {
+
+            level = lvl;
+            if (lvl === 1) {
+                score = 0;
+                lives = 3;
+            }
+            items = [];
+            gameActive = true;
+            level = lvl
+            updateLivesUI();
+
+            const savedName = localStorage.getItem('currentPlayerName') || "PLAYER";
+            const nameDisplay = document.getElementById('playerNameDisplay');
+            if (nameDisplay) {
+                nameDisplay.innerText = savedName.toUpperCase();
+            }
+
+
+            startMenu.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            levelUpScreen.style.display = 'none';
+
+            updateUI();
+            updateLivesUI();
+            startSpawning();
+            update();      
+            setupUserDisplay(); // עדכון תצוגת השם והשיא
+
+        }
+
+        function updateUI() {
+            document.getElementById('scoreDisplay').innerText = `ניקוד: ${score}`;
+            document.getElementById('levelDisplay').innerText = `שלב: ${level}`;
+        }
+
+        function updateLivesUI() {
+            const livesDisplay = document.getElementById('livesDisplay');
+            // מייצר מחרוזת של לבבות לפי מספר החיים שנשארו
+            livesDisplay.innerText = "❤️".repeat(lives);
+        }
+
+        function startSpawning() {
+            if (spawnTimer) clearInterval(spawnTimer);
+            const currentParams = getLevelParams(level);
+            spawnTimer = setInterval(() => {
+                if (!gameActive) return;
+                spawnObject();
+            }, currentParams.spawnRate);
+        }
+
+        function spawnObject() {
+            const currentParams = getLevelParams(level);
+            const rand = Math.random();
+            let type, color, r, points;
+
+            if (rand < 0.5) {
+                // 50% סיכוי למוקש אדום (אויב)
+                type = 'enemy';
+                color = '#ff4757'; // אדום
+                r = 18;
+                points = 0;
+            } else if (rand < 0.9) {
+                // 40% סיכוי ליהלום צהוב רגיל
+                type = 'item';
+                color = '#f1c40f'; // צהוב
+                r = 12;
+                points = 100;
+            } else {
+                // 10% סיכוי ליהלום כחול מיוחד (פי 3 נקודות!)
+                type = 'specialItem';
+                color = '#3498db'; // כחול בוהק
+                r = 14; // מעט גדול יותר מהרגיל
+                points = 300;
+            }
+
+            items.push({
+                x: Math.random() * canvas.width,
+                y: -50,
+                r: r,
+                speed: (Math.random() * 3 + 2) * currentParams.speedBoost,
+                type: type,
+                color: color,
+                points: points // שומרים את כמות הנקודות שזה שווה
+            });
+        }
+        function update() {
+            if (!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // ציור כוכבים (נשתמש במערך פשוט או סתם בנקודות אקראיות לביצועים)
+            if (!window.stars) {
+                window.stars = Array.from({ length: 50 }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    s: Math.random() * 2
+                }));
+            }
+            ctx.fillStyle = "white";
+            window.stars.forEach(star => {
+                star.y += star.s; // תנועה למטה
+                if (star.y > canvas.height) star.y = 0; // חזרה למעלה
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.s, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "#00d2ff";
+            ctx.fillStyle = "#00d2ff";
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                let s = items[i];
+                s.y += s.speed;
+
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = s.color;
+                ctx.fillStyle = s.color;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                let dist = Math.hypot(player.x - s.x, player.y - s.y);
+
+                if (dist < player.r + s.r) {
+                    // --- מקרה של איסוף יהלום (צהוב או כחול) ---
+                    if (s.type === 'item' || s.type === 'specialItem') {
+                        score += s.points; // מוסיף נקודות (100 או 300)
+                        showFloatingText(s.x, s.y, "+" + s.points, s.color);
+                        playSnd(collectSound); // צליל הצלחה
+                        createFirework(s.x, s.y); // זיקוקים
+                        updateUI();
+                        checkLevelComplete();
+                        items.splice(i, 1); // מוחק את היהלום מהמסך
+                    }
+                    // --- מקרה של פגיעה במוקש (אדום) ---
+                    else if (s.type === 'enemy') {
+                        createExplosion(s.x, s.y);
+                        let pulse = Math.sin(Date.now() / 200) * 3; // יוצר פעימה עדינה
+                        ctx.shadowBlur = 15 + pulse;
+                        ctx.beginPath();
+                        ctx.arc(s.x, s.y, s.r + pulse / 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        lives--; // מוריד חיים
+                        updateLivesUI();
+                        playSnd(explosionSound); // צליל פיצוץ
+                        // הצגת טקסט צף על הורדת חיים
+                        showFloatingText(player.x, player.y, "נפגעת! 💔", "#ff4757");
+
+                        // אפקט רעידת מסך
+                        document.body.classList.add('shake-effect');
+                        setTimeout(() => document.body.classList.remove('shake-effect'), 300);
+
+                        if (lives <= 0) {
+                            triggerGameOver(); // פסילה סופית
+                        } else {
+                            items.splice(i, 1); // מוחק רק את המוקש הספציפי וממשיך
+                        }
+                    }
+                }
+                // מחיקת אובייקטים שיצאו מגבולות המסך
+                else if (s.y > canvas.height + 50) {
+                    items.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(update);
+
+
+        }
+
+        function checkLevelComplete() {
+            const currentParams = getLevelParams(level);
+            if (score >= currentParams.target) {
+                gameActive = false;
+                clearInterval(spawnTimer);
+
+                const nextParams = getLevelParams(level + 1);
+                levelUpText.innerText = `סיימת את שלב ${level}! היעד הבא: ${nextParams.target} נקודות.`;
+                levelUpScreen.style.display = 'block';
+
+                nextLevelBtn.onclick = () => {
+                    initGame(level + 1);
+                };
+            }
+        }
+
+        function triggerGameOver() {
+            // --- הפעלת רעידת מסך ---
+            document.body.classList.add('shake-effect');
+
+            // הסרת הקלאס אחרי 300 מילישניות (זמן האנימציה)
+            setTimeout(() => {
+                document.body.classList.remove('shake-effect');
+            }, 300);
+
+            gameActive = false;
+            clearInterval(spawnTimer);
+            playSnd(explosionSound);
+            finalScoreText.innerText = `הגעת לניקוד של ${score} בשלב ${level}`;
+            gameOverScreen.style.display = 'block';
+            // --- עדכון שיא חדש ---
+            // if (score > highScore) {
+            //     highScore = score;
+            //     localStorage.setItem(userHighScoreKey, highScore);
+            //     document.getElementById('highScoreDisplay').innerText = `שיא חדש! ${highScore} בשלב ${level}`;
+            // }
+
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem(userHighScoreKey, highScore);
+                // שומרים גם את השלב שבו השיא נקבע
+                localStorage.setItem(userHighScoreKey + '_level', level);
+            }
+
+            // ----------------------
+
+            document.getElementById('finalScoreText').innerText = `הגעת לניקוד ${score} בשלב ${level}`;
+            document.getElementById('gameOverScreen').style.display = 'block';
+        }
+
+        function createExplosion(x, y) {
+            // מספר הרסיסים בפיצוץ
+            const particleCount = 20;
+
+            for (let i = 0; i < particleCount; i++) {
+                const el = document.createElement('div');
+                el.className = 'explosion-particle';
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+
+                // צבעים אדומים-כתומים לפיצוץ ריאליסטי
+                const hue = Math.random() * 20 + 0; // מ-0 (אדום) עד 20 (כתום)
+                const color = `hsl(${hue}, 100%, 60%)`;
+                el.style.backgroundColor = color;
+                el.style.boxShadow = `0 0 10px ${color}`;
+
+                // גודל רסיסים משתנה
+                const size = Math.random() * 8 + 4;
+                el.style.width = size + 'px';
+                el.style.height = size + 'px';
+
+                document.body.appendChild(el);
+
+                // חישוב זווית ומרחק תעופה לכל רסיס
+                const angle = Math.random() * Math.PI * 2; // כל כיוון אפשרי
+                const dist = Math.random() * 150 + 50; // מרחק עף בין 50 ל-200 פיקסלים
+                const destinationX = Math.cos(angle) * dist;
+                const destinationY = Math.sin(angle) * dist;
+
+                // אנימציית הפיצוץ: הרסיסים מתרחבים, נעלמים ועפים החוצה
+                el.animate([
+                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                    { transform: `translate(${destinationX}px, ${destinationY}px) scale(0)`, opacity: 0 }
+                ], {
+                    duration: Math.random() * 500 + 500, // זמן פיצוץ משתנה (0.5 - 1 שניות)
+                    easing: 'ease-out' // מהיר בהתחלה, מאט בסוף
+                }).onfinish = () => el.remove(); // מחיקת האלמנט בסיום האנימציה
+            }
+        }
+
+        function showFloatingText(x, y, text, color) {
+            const el = document.createElement('div');
+            el.innerText = text;
+            el.style.position = 'fixed';
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.style.color = color;
+            el.style.fontWeight = 'bold';
+            el.style.fontSize = '24px';
+            el.style.pointerEvents = 'none';
+            el.style.zIndex = '1000';
+            el.style.textShadow = '0 0 5px black'; // מוסיף צל כדי שהטקסט יהיה קריא על הרקע
+            document.body.appendChild(el);
+
+            // אנימציה של עלייה למעלה והיעלמות
+            el.animate([
+                { transform: 'translateY(0)', opacity: 1 },
+                { transform: 'translateY(-60px)', opacity: 0 }
+            ], { duration: 800 }).onfinish = () => el.remove();
+        }
+
+        function resetToStart() {
+            gameOverScreen.style.display = 'none';
+            startMenu.style.display = 'block';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            level = 1; // מחזיר לשלב 1 בכישלון
+        }
+
+        window.onmousemove = (e) => {
+            player.x = e.clientX;
+            player.y = e.clientY;
+        };
+
+        function createFirework(x, y) {
+            for (let i = 0; i < 15; i++) {
+                const f = document.createElement('div');
+                f.className = 'firework';
+                f.style.left = x + 'px';
+                f.style.top = y + 'px';
+                const color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+                f.style.backgroundColor = color;
+                f.style.boxShadow = `0 0 10px ${color}`;
+                document.body.appendChild(f);
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * 80 + 40;
+                f.animate([
+                    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+                    { transform: `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px) scale(0)`, opacity: 0 }
+                ], { duration: 600 }).onfinish = () => f.remove();
+            }
+        }
+
+
+
+    </script>
+
+
+
+
+</body>
+
+</html>
